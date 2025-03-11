@@ -35,10 +35,10 @@ class PFData():
 
     def __init__(self):
         # system data
-        self.basemva = []
-        self.ws = []
+        self.basemva = []  # 基准功率
+        self.ws = []  # 同步角速度
 
-        # bus data
+        # bus data 母线编号、类型、电压幅值、相角、电压等级等
         self.bus_num = np.asarray([])
         self.bus_type = np.asarray([])
         self.bus_Vm = np.asarray([])
@@ -1185,32 +1185,32 @@ class EmtSimu():
         self.Nlen = np.asarray([])
 
         self.t = {}
-        self.x = {}
-        self.x_pv_1 = []
-        self.x_pred = {}
-        self.x_ibr = {}
+        self.x = {}  # 发电机状态变量（转速、电流、电压等）
+        self.x_pv_1 = []  # 上一时步的状态变量
+        self.x_pred = {}  # 预测状态变量
+        self.x_ibr = {}  # 逆变器的状态变量
         self.x_ibr_pv_1 = []
-        self.x_load = {}
+        self.x_load = {}  # 负荷状态变量（阻抗、功率等）
         self.x_load_pv_1 = []
-        self.x_bus = {}
+        self.x_bus = {}  # 母线状态变量（电压，频率等）
         self.x_bus_pv_1 = []
-        self.v = {}
+        self.v = {}  # 节点电压
         self.i = {}
 
-        self.xp = States(ngen) # seems not necessary, try later and see if they can be deleted
-        self.xp_ibr = States_ibr(nibr)
-        self.Igs = np.zeros(3*nbus)
-        self.Isg = np.zeros(3 * ngen)
-        self.Igi = np.zeros(3*nbus)
-        self.Il = np.zeros(3*nbus) # to change to Igl and Iload
-        self.Ild = np.zeros(3*nload)
-        self.Iibr = np.zeros(3*nibr)
-        self.brch_Ihis = np.asarray([])
-        self.brch_Ipre = np.asarray([])
-        self.node_Ihis = np.asarray([])
-        self.I_RHS = np.zeros(3*nbus)
-        self.Vsol = np.zeros(3*nbus)
-        self.Vsol_1 = np.zeros(3*nbus)
+        self.xp = States(ngen) # seems not necessary, try later and see if they can be deleted  存储发电机状态变量
+        self.xp_ibr = States_ibr(nibr)  # 存储逆变器的状态变量
+        self.Igs = np.zeros(3*nbus)  # 发电机注入电网的电流
+        self.Isg = np.zeros(3 * ngen)  # 发电机侧的电流
+        self.Igi = np.zeros(3*nbus)  # 逆变器注入电网的电流
+        self.Il = np.zeros(3*nbus) # to change to Igl and Iload  负载电流，每一步仿真都会被更新，用于计算负载的动态行为
+        self.Ild = np.zeros(3*nload)  # 负载动态电流，通常用于描述负载的暂态行为，而上面那个可能包括动态或静态部分
+        self.Iibr = np.zeros(3*nibr)  # 逆变器电流，用于计算逆变器动态行为
+        self.brch_Ihis = np.asarray([])  # 支路的历史电流
+        self.brch_Ipre = np.asarray([])  # 支路的预测电流，用于在下一步仿真中更新支路电流
+        self.node_Ihis = np.asarray([])  # 节点的历史电流，在计算节点电流时用于考虑动态行为（如暂态过程）
+        self.I_RHS = np.zeros(3*nbus)  # 表示网络方程右侧电流，就是所有节点的注入电流
+        self.Vsol = np.zeros(3*nbus)  # 当前时步的电压的解
+        self.Vsol_1 = np.zeros(3*nbus)  # 上一时步的电压的解
 
         # self.fft_vabc = []
         # self.fft_T = 1
@@ -1219,14 +1219,15 @@ class EmtSimu():
         # self.fft_vpn0 = {}
 
 
-        self.theta = np.zeros(ngen)
-        self.ed_mod = np.zeros(ngen)
-        self.eq_mod = np.zeros(ngen)
+        self.theta = np.zeros(ngen)  # 发电机转子角度
+        self.ed_mod = np.zeros(ngen)  # 发电机修改后的d轴电压
+        self.eq_mod = np.zeros(ngen)  # 发电机修改后的q轴电压
 
-        self.t_release_f = 0.1
-        self.loadmodel_option = 1  # 1-const rlc, 2-const z
+        self.t_release_f = 0.1  # 定义某一特定事件（如阶跃变化或发电机跳闸）的释放时间。在此时间之前，
+        # 系统可能处于某种初始状态或过渡状态，而在 t_release_f 之后，系统开始进入正常的动态仿真阶段。
+        self.loadmodel_option = 1  # 1-const rlc, 2-const z  可以选择恒阻抗负载或者恒功率负载
 
-        # step change
+        # step change  变步长?还是阶跃变化
         self.t_sc = 1000        # the time when the step change occurs
         self.i_gen_sc = 1       # which gen, index in pfd.gen_bus
         self.flag_exc_gov = 1   # 0 - exc, 1 - gov
@@ -1234,24 +1235,24 @@ class EmtSimu():
         self.flag_sc = 1        # 1 - step change to be implemented, 0 - step change completed
 
         # gen trip
-        self.t_gentrip = 1000   # the time when the gentrip occurs
-        self.i_gentrip = 1      # which gen, index in pfd.gen_bus
+        self.t_gentrip = 1000   # the time when the gentrip occurs  发电机跳闸时间
+        self.i_gentrip = 1      # which gen, index in pfd.gen_bus  跳闸发电机的索引
         self.flag_gentrip = 1   # 1 - gentrip to be implemented, 0 - gentrip completed
         self.flag_reinit = 1    # 1 - re-init to be implemented, 0 - re-init completed
 
 
         # ref at last time step (for calculating dref term)
-        self.vref = np.zeros(ngen)
+        self.vref = np.zeros(ngen)  # 发电机励磁系统的电压参考
         self.vref_1 = np.zeros(ngen)
-        self.gref = np.zeros(ngen)
+        self.gref = np.zeros(ngen)  # 发电机的功率参考值
 
 
-        # playback
-        self.data = []
-        self.playback_enable = 0
-        self.playback_t_chn = 0
-        self.playback_sig_chn = 1
-        self.playback_tn = 0
+        # playback 录音
+        self.data = []  # 数据存储，以便后续分析或者回放
+        self.playback_enable = 0  # 回放功能启用
+        self.playback_t_chn = 0  # 回放时间通道，用于存储回放过程中的时间序列，是一个数组，记录了回放过程中每个时间点的具体时间值
+        self.playback_sig_chn = 1  # 回放信号通道， 用于存储回放过程中的信号序列，是一个数组，记录了回放过程中每个时间点的信号值（如电压、电流等）
+        self.playback_tn = 0  # 回放时间步数，用于记录回放过程中的当前时间步数，它是一个计数器，用于控制回放过程的进度
 
         self.data1 = []
         self.playback_enable1 = 0
@@ -1260,13 +1261,14 @@ class EmtSimu():
         self.playback_tn1 = 0
 
         # mac as I source
-        self.flag_Isrc = 0
+        self.flag_Isrc = 0  # 是否将发电机或者逆变器视为电流源
 
         return
 
 
 
     def preprocess(self, ini, pfd, dyd):
+        # 在仿真开始前进行预处理，初始化状态变量、电压和电流
         self.t = [0.0]
 
         nbus = len(pfd.bus_num)

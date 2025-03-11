@@ -18,22 +18,22 @@ os.chdir(workingfolder)
 
 def main():
     SimMod = 1  # 0 - Save a snapshot, 1 - run from a snapshot
-    DSrate = 10 # down sampling rate, i.e. results saved every DSrate sim steps.
+    DSrate = 10 # down sampling rate, i.e. results saved every DSrate sim steps.  采样率，每DSrate步保存一次
 
     systemN = 6 # 1: 2-gen, 2: 9-bus, 3: 39-bus, 4: 179-bus, 5: 240-bus, 6: 2-area
-    N_row = 1  # haven't tested the mxn layout, so plz don't set N_row/N_col to other nums.
+    N_row = 1  # haven't tested the mxn layout, so plz don't set N_row/N_col to other nums. TODO：电网布局行列数
     N_col = 1
 
     ts = 50e-6  # time step, second
     Tlen = 10  # total simulation time length, second
     t_release_f = 0.0
-    loadmodel_option = 1  # 1-const rlc, 2-const z
+    loadmodel_option = 1  # 1-const rlc, 2-const z  这个表示负载模型
     netMod = 'lu'
-    nparts = 2 # number of blocks in BBD form
+    nparts = 2 # number of blocks in BBD form 分块对角形式子块数量
 
-    output_snp_ful = 'sim_snp_S' + str(systemN) + '_' + str(int(ts * 1e6)) + 'u.pkl'
-    output_snp_1pt = 'sim_snp_S' + str(systemN) + '_' + str(int(ts * 1e6)) + 'u_1pt.pkl'
-    output_res = 'sim_res_S' + str(systemN) + '_' + str(int(ts * 1e6)) + 'u.pkl'
+    output_snp_ful = 'sim_snp_S' + str(systemN) + '_' + str(int(ts * 1e6)) + 'u.pkl'  # 完整快照文件名
+    output_snp_1pt = 'sim_snp_S' + str(systemN) + '_' + str(int(ts * 1e6)) + 'u_1pt.pkl'  # 点快照文件名
+    output_res = 'sim_res_S' + str(systemN) + '_' + str(int(ts * 1e6)) + 'u.pkl'  # 仿真结果文件名
     input_snp = 'sim_snp_S' + str(systemN) + '_' + str(int(ts * 1e6)) + 'u_1pt.pkl'
 
     t0 = time.time()
@@ -44,11 +44,11 @@ def main():
 
     ## ---------------------- other simulation setting ----------------------------------------------------------
     # ctrl step change
-    emt.t_sc = 1
+    emt.t_sc = 1  #
     emt.i_gen_sc = 0
-    emt.flag_exc_gov = 1  # 0 - exc, 1 - gov
+    emt.flag_exc_gov = 1  # 0 - exc, 1 - gov  励磁和调速器
     emt.dsp = - 0.02
-    emt.flag_sc = 1
+    emt.flag_sc = 1  # 是否使用变步长
 
     # gen trip
     emt.t_gentrip = 50
