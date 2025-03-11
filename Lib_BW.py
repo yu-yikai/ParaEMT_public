@@ -24,6 +24,8 @@ Ainv = np.asarray([[1,1,1],[1,alpha*alpha,alpha],[1,alpha,alpha*alpha]])/3.0
 # ---------------------------------------------------------------------------
 # power flow data class
 class PFData():
+    # PFData类用于存储电力系统的静态数据，这些数据通常来源于潮流计算（Power Flow, PF）的结果。
+    # 这些数据描述了电力系统在稳态条件下的运行状态，包括母线电压、发电机功率、负载功率等。
 
     @staticmethod
     def load_from_json(storage):
@@ -473,6 +475,8 @@ class PFData():
 
 class DyData():
     # Maps string governor model names to integers
+    # DyData类用于存储电力系统的动态数据，这些数据通常来源于动态仿真模型（如发电机、励磁系统、调速器、逆变器等）。
+    # 这些数据描述了电力系统在动态条件下的行为，包括发电机的转速、电流、电压等动态变量。
     gov_model_map = {
         'GAST':0,
         'HYGOV':1,
@@ -1178,6 +1182,8 @@ class DyData():
 
 # EMT sim
 class EmtSimu():
+    # 用于电磁暂态（Electromagnetic Transient, EMT）仿真的核心类。
+    # 封装了与电力系统电磁暂态仿真相关的状态变量、参数以及仿真过程中的关键计算步骤。
     def __init__(self, ngen, nibr, nbus, nload):
         # three-phase synchronous machine model, unit in Ohm
         self.ts = 50e-6     # second
@@ -1311,6 +1317,7 @@ class EmtSimu():
         return
 
     def predictX(self, pfd, dyd, ts):
+        # 预测状态变量，根据当前的状态和参数预测下一个时间步的状态量
 
         xlen = len(self.x)
         x_pv_1 = self.x_pv_1
@@ -1407,6 +1414,7 @@ class EmtSimu():
 
 
     def updateIg(self, pfd, dyd, ini):
+        # 更新发电机注入电流。根据发电机的状态变量和模型参数，计算发电机注入到电网的电流。
         numba_updateIg(
             self.Igs,
             self.Isg,
@@ -1458,6 +1466,7 @@ class EmtSimu():
 
 
     def updateIibr(self, pfd, dyd, ini):
+        # 更新逆变器注入电流。根据逆变器的状态变量和模型参数，计算逆变器注入到电网的电流。
         if len(self.v) == 1:
             vtemp = self.v[0]
         else:
@@ -1486,6 +1495,7 @@ class EmtSimu():
 
         return
     def solveV(self, ini):
+        # 求解节点电压。根据电网的网络参数和注入电流，计算节点电压。
         self.Vsol_1 = self.Vsol
         if self.loadmodel_option == 1:
             self.I_RHS = self.Igs + self.Igi + self.node_Ihis
@@ -1506,6 +1516,7 @@ class EmtSimu():
 
 
     def updateX(self, pfd, dyd, ini, tn):
+        # 更新状态变量。根据当前状态和模型参数，更新下一个时间步的状态。
         self.x_pv_1 = numba_updateX(
             # Altered Arguments
             self.x_pv_1,
@@ -1662,6 +1673,7 @@ class EmtSimu():
 
 
     def updateXibr(self, pfd, dyd, ini, ts):
+        # 更新逆变器状态变量。根据逆变器的模型参数，更新逆变器的状态。
         self.x_ibr_pv_1 = numba_updateXibr(
             # Altered Arguments
             self.x_ibr_pv_1,
@@ -1691,6 +1703,7 @@ class EmtSimu():
 
 
     def updateIhis(self, ini):
+        # 更新历史电流。根据电网的网络参数和历史电流，计算新的历史电流。
 
         (brch_Ipre, node_Ihis) = numba_updateIhis(self.brch_Ihis,
                                                   self.Vsol,
@@ -1703,6 +1716,7 @@ class EmtSimu():
 
 
     def updateIl(self, pfd, dyd, tn):
+        # 更新负载电流。根据负载的状态变量和模型参数，计算负载电流。
         nbus = len(pfd.bus_num)
         for i in range(len(pfd.load_bus)):
             busi_idx = np.where(pfd.bus_num == pfd.load_bus[i])[0][0]
@@ -1733,6 +1747,7 @@ class EmtSimu():
             self.Ild[3 * i + 2] = - Imag * np.cos(Vangc - ZL_ang)
 
     def updateXl(self, pfd, dyd, tn):
+        # 更新负载状态变量。根据负载的模型参数，更新负载的状态。
 
         # calc load power
         nbus = len(pfd.bus_num)
@@ -1774,6 +1789,7 @@ class EmtSimu():
 
 
     def BusMea(self, pfd, dyd, tn):
+        # 更新母线测量值。根据母线的状态变量和模型参数，计算母线的测量值（如电压、频率等）。
         nbus = len(pfd.bus_num)
 
         # # FFT
@@ -1890,6 +1906,7 @@ class EmtSimu():
         return
 
     def StepChange(self, dyd, ini, tn):
+        # 实现阶跃变化（如发电机功率阶跃或励磁电压阶跃）。
         if tn * self.ts >= self.t_sc:
             if self.flag_sc == 1:
                 if self.flag_exc_gov == 1:
@@ -1914,6 +1931,7 @@ class EmtSimu():
                     self.flag_sc = 0
 
     def GenTrip(self, pfd, dyd, ini, tn, netMod):
+        # 实现发电机跳闸。
         if self.t_gentrip:
             if tn * self.ts >= self.t_gentrip:
                 genbus_idx = int(np.where(pfd.bus_num == pfd.gen_bus[self.i_gentrip])[0])
@@ -1926,6 +1944,7 @@ class EmtSimu():
                     self.flag_gentrip = 0
 
     def Re_Init(self, pfd, dyd, ini):
+        # 重新初始化仿真状态（如在发电机跳闸后重新计算网络参数）。
         nbus = len(pfd.bus_num)
         ngen = len(pfd.gen_bus)
 
@@ -2166,6 +2185,7 @@ class EmtSimu():
         self.flag_reinit = 0
 
     def dump_res(self, pfd, dyd, ini, SimMod, output_snp_ful, output_snp_1pt, output_res):
+        # 将仿真结果保存到文件中
         # remove SuperLU objects to be compatible with pickle
         ini.Init_net_G0_lu = []
 
@@ -2230,6 +2250,7 @@ class EmtSimu():
 
 # states class
 class States():
+    # 用于存储发电机的状态变量，这些状态变量在电磁暂态仿真中用于描述发电机的动态行为。
     def __init__(self, ngen):
         self.pv_dt_1 = np.zeros(ngen)
         self.pv_dt_2 = np.zeros(ngen)
@@ -2423,6 +2444,7 @@ class States():
 
 # states class
 class States_ibr():
+    # 用于存储逆变器（IBR）的状态变量，这些状态变量在电磁暂态仿真中用于描述逆变器的动态行为。
     def __init__(self, nibr):
         # IBR
         self.nx_freq = np.zeros(nibr)
@@ -2483,6 +2505,7 @@ class States_ibr():
 # --------------------------------------------
 # EMT initializaiton
 class Initialize():
+    # 用于初始化电力系统的网络参数和状态变量，为电磁暂态仿真做准备。
     def __init__(self, pfd, dyd):
         nbus = len(pfd.bus_num)
         ngen = len(pfd.gen_bus)
